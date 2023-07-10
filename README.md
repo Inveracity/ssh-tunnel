@@ -85,6 +85,7 @@ or install it with go
 
 ```sh
 go install github.com/inveracity/ssh-tunnel/cmd/ssh-tunnel@latest
+ssh-tunnel --version
 ```
 
 # Build
