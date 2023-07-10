@@ -84,7 +84,7 @@ Either download it from the [releases page](https://github.com/Inveracity/ssh-tu
 or install it with go
 
 ```sh
-go install github.com/inveracity/ssh-tunnel@1.0.0
+go install github.com/inveracity/ssh-tunnel/cmd/ssh-tunnel@latest
 ```
 
 # Build
