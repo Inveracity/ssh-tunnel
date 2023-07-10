@@ -16,7 +16,7 @@ Then this highly overengineered tool will help you to **never** worry about it a
 
 Write a config specifying the tunnel(s) needed:
 
-> ℹ️ **TIP** see the `example.config.hcl` file
+> ℹ️ **TIP** see the `example.ssh-tunnel.hcl` file
 
 ```hcl
 // tunnel 1
@@ -59,7 +59,7 @@ ssh-tunnel
 $ ssh-tunnel --help
 
 #  -config string
-#        The config file to use (default "config.hcl")
+#        The config file to use (default "ssh-tunnel.hcl")
 #  -no-color
 #        Disable color output
 #  -version

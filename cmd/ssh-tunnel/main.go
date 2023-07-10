@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	configfile  = flag.String("config", "config.hcl", "The config file to use")
+	configfile  = flag.String("config", "ssh-tunnel.hcl", "The config file to use")
 	flagNoColor = flag.Bool("no-color", false, "Disable color output")
 	v           = flag.Bool("version", false, "Print the version and exit")
 )
