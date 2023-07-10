@@ -12,7 +12,7 @@ ssh -L 8080:localhost:8080 user@server -N
 
 Then this highly overengineered tool will help you to worry about it again.
 
-Simply write a config file specifying the tunnel you want:
+Write a config specifying the tunnel(s) needed:
 
 > ℹ️ **TIP** see the `example.config.hcl` file
 
@@ -20,11 +20,9 @@ Simply write a config file specifying the tunnel you want:
 // tunnel 1
 tunnel {
     user = "user"
-
     local {
         port = 8080
     }
-
     remote {
         host = "server:22"
         port = 8080
@@ -34,11 +32,9 @@ tunnel {
 // tunnel 2
 tunnel {
     user = "user"
-
     local {
         port = 8081
     }
-
     remote {
         host = "server:22"
         port = 8081
