@@ -94,7 +94,8 @@ go install github.com/inveracity/ssh-tunnel@1.0.0
 # Build
 
 ```sh
-make build
+make ssh-tunnel
+# ./ssh-tunnel --help
 ```
 
 or `make install` to install the binary directly into `/usr/local/bin`

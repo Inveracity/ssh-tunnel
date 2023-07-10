@@ -7,10 +7,9 @@
 VERSION?=dev
 
 # inject the version number into the Version variable
-flags=-X 'github.com/inveracity/ssh-tunnel/cmd.Version=$(VERSION)'
+flags=-X 'github.com/inveracity/ssh-tunnel/internal/version.Version=$(VERSION)'
 
-.PHONY: build
-build:
+ssh-tunnel:
 	@echo "Building..."
 	@go mod tidy
 	@CGO_ENABLED=0 go build -ldflags "$(flags)" -o ssh-tunnel cmd/ssh-tunnel/main.go
@@ -21,7 +20,7 @@ install: build
 	sudo mv -f ssh-tunnel /usr/local/bin/ssh-tunnel
 
 .PHONY: zip
-zip: build
+zip: ssh-tunnel
 	@echo "Zipping..."
 	@mkdir -p dist
 	@zip -j dist/ssh-tunnel_linux_amd64.zip ssh-tunnel

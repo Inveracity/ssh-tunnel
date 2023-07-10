@@ -8,10 +8,10 @@ import (
 	"github.com/fatih/color"
 	"github.com/inveracity/ssh-tunnel/internal/config"
 	"github.com/inveracity/ssh-tunnel/internal/tunnel"
+	"github.com/inveracity/ssh-tunnel/internal/version"
 )
 
 var (
-	Version     = "dev"
 	configfile  = flag.String("config", "config.hcl", "The config file to use")
 	flagNoColor = flag.Bool("no-color", false, "Disable color output")
 	v           = flag.Bool("version", false, "Print the version and exit")
@@ -41,5 +41,5 @@ func main() {
 }
 
 func PrintVersion() {
-	fmt.Println(Version)
+	fmt.Println(version.Version)
 }
