@@ -1,0 +1,29 @@
+name: build
+on:
+  release:
+    types: [published]
+  workflow_dispatch: # Allow manual runs only
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      - name: Build
+        run: make build VERSION=$GITHUB_REF_NAME
+
+      - name: zip
+        run: make zip
+
+      - name: Upload
+        uses: actions/upload-artifact@v2
+        with:
+          name: assets-for-download
+          path: dist
