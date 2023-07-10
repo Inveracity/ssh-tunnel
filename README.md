@@ -79,7 +79,7 @@ source ~/.profile
 
 # Installation
 
-Either download it from the releases page
+Either download it from the [releases page](https://github.com/Inveracity/ssh-tunnel/releases)
 
 or install it with go
 
