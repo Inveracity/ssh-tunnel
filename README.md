@@ -12,7 +12,7 @@ as in:
 ssh -L 8080:localhost:8080 user@server -N
 ```
 
-Then this highly overengineered tool will help you to worry about it again.
+Then this highly overengineered tool will help you to **never** worry about it again.
 
 Write a config specifying the tunnel(s) needed:
 
