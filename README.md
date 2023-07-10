@@ -1,5 +1,7 @@
 # SSH Tunnel
 
+https://user-images.githubusercontent.com/8753040/252415448-7dafba47-13cc-4669-b891-1b7f9e9935ed.mp4
+
 > this could've been a small bash script 💩
 
 If you are like me and can't remember the ssh tunnel command to reach your services behind a firewall

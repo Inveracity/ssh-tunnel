@@ -16,13 +16,15 @@ type Configuration struct {
 }
 
 type Tunnel struct {
+	Name   string `hcl:"name,optional"`
 	User   string `hcl:"user"`
 	Local  Local  `hcl:"local,block"`
 	Remote Remote `hcl:"remote,block"`
 }
 
 type Local struct {
-	Port string `hcl:"port"`
+	Port string   `hcl:"port"`
+	Cmd  []string `hcl:"cmd,optional"`
 }
 
 type Remote struct {
@@ -50,13 +52,28 @@ func Parse(configfile string) []Tunnel {
 		log.Fatal(confDiags)
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 6, 1, 2, ' ', tabwriter.TabIndent)
-	fmt.Fprintln(w, "Remote Host\tTunnel")
-	for _, tunnel := range config.Tunnels {
-		greentunnel := color.New(color.FgGreen).Sprintf("127.0.0.1:%s -> 127.0.0.1:%s", tunnel.Local.Port, tunnel.Remote.Port)
-		fmt.Fprintf(w, "%s@%s\t%s\n", tunnel.User, tunnel.Remote.Host, greentunnel)
-	}
-	w.Flush()
+	printConfig(config.Tunnels)
 
 	return config.Tunnels
+}
+
+func printConfig(config []Tunnel) {
+	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', tabwriter.TabIndent)
+
+	blue := color.New(color.FgHiBlue)
+	green := color.New(color.FgGreen)
+
+	fmt.Fprintf(w, "%s\t%s\t\t%s\n", "User@Host", blue.Sprintf("Remote"), green.Sprintf("Local"))
+
+	for _, tunnel := range config {
+
+		from := blue.Sprintf("127.0.0.1:%s", tunnel.Local.Port)
+		if tunnel.Name != "" {
+			from = blue.Sprintf("%s", tunnel.Name)
+		}
+
+		to := green.Sprintf("127.0.0.1:%s", tunnel.Remote.Port)
+		fmt.Fprintf(w, "%s@%s\t%s\t->\t%s\n", tunnel.User, tunnel.Remote.Host, from, to)
+	}
+	w.Flush()
 }

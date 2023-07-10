@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os/exec"
 	"sync"
 
 	"github.com/fatih/color"
@@ -32,11 +33,18 @@ func main() {
 	config := config.Parse(*configfile)
 
 	var wg sync.WaitGroup
-	for _, t := range config {
+	for _, c := range config {
 		wg.Add(1)
 		defer wg.Done()
-		go tunnel.Start(t)
+		go tunnel.Start(c)
+
+		// If there is a command to run, run it
+		if c.Local.Cmd != nil {
+			command, args := c.Local.Cmd[0], c.Local.Cmd[1:]
+			exec.Command(command, args...).Run()
+		}
 	}
+
 	wg.Wait()
 }
 
