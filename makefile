@@ -13,7 +13,7 @@ flags=-X 'github.com/inveracity/ssh-tunnel/cmd.Version=$(VERSION)'
 build:
 	@echo "Building..."
 	@go mod tidy
-	@go build -ldflags "$(flags)" -o ssh-tunnel cmd/ssh-tunnel/main.go
+	@CGO_ENABLED=0 go build -ldflags "$(flags)" -o ssh-tunnel cmd/ssh-tunnel/main.go
 
 .PHONY: install
 install: build

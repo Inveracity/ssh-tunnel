@@ -10,3 +10,4 @@ go.work
 # Repo specific
 dist
 config.hcl
+ssh-tunnel
