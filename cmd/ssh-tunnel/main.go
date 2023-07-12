@@ -8,6 +8,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/inveracity/ssh-tunnel/internal/config"
+	"github.com/inveracity/ssh-tunnel/internal/template"
 	"github.com/inveracity/ssh-tunnel/internal/tunnel"
 	"github.com/inveracity/ssh-tunnel/internal/version"
 )
@@ -16,13 +17,14 @@ var (
 	configfile  = flag.String("config", "ssh-tunnel.hcl", "The config file to use")
 	flagNoColor = flag.Bool("no-color", false, "Disable color output")
 	v           = flag.Bool("version", false, "Print the version and exit")
+	newconfig   = flag.Bool("init", false, "Create a new config file")
 )
 
 func main() {
 	flag.Parse()
 
 	if *flagNoColor {
-		color.NoColor = true // disables colorized output
+		color.NoColor = true
 	}
 
 	if *v {
@@ -30,6 +32,15 @@ func main() {
 		return
 	}
 
+	if *newconfig {
+		template.Write()
+		return
+	}
+
+	run()
+}
+
+func run() {
 	config := config.Parse(*configfile)
 
 	var wg sync.WaitGroup
