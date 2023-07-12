@@ -56,14 +56,17 @@ ssh-tunnel
 ```
 
 ```sh
-$ ssh-tunnel --help
+ssh-tunnel --help
 
-#  -config string
-#        The config file to use (default "ssh-tunnel.hcl")
-#  -no-color
-#        Disable color output
-#  -version
-#        Print the version and exit
+# Usage of ./ssh-tunnel:
+#   -config string
+#         The config file to use (default "ssh-tunnel.hcl")
+#   -init
+#         Create a new config file
+#   -no-color
+#         Disable color output
+#   -version
+#         Print the version and exit
 ```
 
 # Prerequisites
