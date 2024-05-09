@@ -15,7 +15,7 @@ ssh-tunnel:
 	@CGO_ENABLED=0 go build -ldflags "$(flags)" -o ssh-tunnel cmd/ssh-tunnel/main.go
 
 .PHONY: install
-install: build
+install: ssh-tunnel
 	@echo "Installing..."
 	sudo mv -f ssh-tunnel /usr/local/bin/ssh-tunnel
 
