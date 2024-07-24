@@ -32,11 +32,6 @@ type Remote struct {
 	Host string `hcl:"host"`
 }
 
-// String prints out a pretty version of the tunnel struct
-func (t Tunnel) String() {
-
-}
-
 func Parse(configfile string) []Tunnel {
 	parser := hclparse.NewParser()
 	file, diags := parser.ParseHCLFile(configfile)
