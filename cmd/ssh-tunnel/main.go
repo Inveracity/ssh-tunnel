@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	configfile  = flag.String("config", "ssh-tunnel.hcl", "The config file to use")
+	configfile  = flag.String("config", "", "The config file to use")
 	flagNoColor = flag.Bool("no-color", false, "Disable color output")
 	v           = flag.Bool("version", false, "Print the version and exit")
 	newconfig   = flag.Bool("init", false, "Create a new config file")
@@ -37,11 +37,23 @@ func main() {
 		return
 	}
 
-	run()
+	if err := run(); err != nil {
+		fmt.Println("ERROR:", err)
+	}
 }
 
-func run() {
-	config := config.Parse(*configfile)
+func run() (err error) {
+	var path_to_config string
+	if *configfile == "" {
+		path_to_config, err = config.FindConfig()
+		if err != nil {
+			return err
+		}
+	} else {
+		path_to_config = *configfile
+	}
+
+	config := config.Parse(path_to_config)
 
 	var wg sync.WaitGroup
 	for _, c := range config {
@@ -57,6 +69,7 @@ func run() {
 	}
 
 	wg.Wait()
+	return nil
 }
 
 func PrintVersion() {
