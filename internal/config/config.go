@@ -1,9 +1,11 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"text/tabwriter"
 
 	"github.com/fatih/color"
@@ -30,11 +32,6 @@ type Local struct {
 type Remote struct {
 	Port string `hcl:"port"`
 	Host string `hcl:"host"`
-}
-
-// String prints out a pretty version of the tunnel struct
-func (t Tunnel) String() {
-
 }
 
 func Parse(configfile string) []Tunnel {
@@ -76,4 +73,33 @@ func printConfig(config []Tunnel) {
 		fmt.Fprintf(w, "%s@%s\t%s\t->\t%s\n", tunnel.User, tunnel.Remote.Host, from, to)
 	}
 	w.Flush()
+}
+
+func FindConfig() (string, error) {
+	homedir, _ := os.UserHomeDir()
+	currentDir := cwd()
+	searchPaths := []string{
+		currentDir + "/ssh-tunnel.hcl",
+		homedir + "/.config/ssh-tunnel/ssh-tunnel.hcl",
+		"/etc/ssh-tunnel/ssh-tunnel.hcl",
+	}
+
+	for _, spath := range searchPaths {
+		fmt.Println(spath)
+		if _, err := os.Stat(spath); err == nil {
+			fmt.Println("Found config in", spath)
+			return spath, nil
+		}
+	}
+
+	return "", errors.New("no ssh-tunnel.hcl found")
+}
+
+func cwd() string {
+	ex, err := filepath.Abs("./")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(ex)
+	return ex
 }

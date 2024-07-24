@@ -14,7 +14,7 @@ func Write() {
 	if !exists() {
 		os.WriteFile(filename, []byte(template()), perms)
 	} else {
-		log.Println("a ssh-tunnel-hcl file already exists, nothing to do")
+		log.Println("a ssh-tunnel.hcl file already exists, nothing to do")
 	}
 }
 
