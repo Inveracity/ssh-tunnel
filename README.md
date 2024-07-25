@@ -61,6 +61,8 @@ ssh-tunnel --help
 # Usage of ./ssh-tunnel:
 #   -config string
 #         The config file to use (default "ssh-tunnel.hcl")
+#   -debug
+#         Print debug output
 #   -init
 #         Create a new config file
 #   -no-color

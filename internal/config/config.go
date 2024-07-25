@@ -75,7 +75,8 @@ func printConfig(config []Tunnel) {
 	w.Flush()
 }
 
-func FindConfig() (string, error) {
+func FindConfig(debug *bool) (string, error) {
+	green := color.New(color.FgGreen)
 	homedir, _ := os.UserHomeDir()
 	currentDir := cwd()
 	searchPaths := []string{
@@ -85,9 +86,13 @@ func FindConfig() (string, error) {
 	}
 
 	for _, spath := range searchPaths {
-		fmt.Println(spath)
+		if *debug {
+			fmt.Println("Searching for config:", spath)
+		}
 		if _, err := os.Stat(spath); err == nil {
-			fmt.Println("Found config in", spath)
+			if *debug {
+				green.Println("Found config in", spath)
+			}
 			return spath, nil
 		}
 	}
@@ -100,6 +105,5 @@ func cwd() string {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(ex)
 	return ex
 }

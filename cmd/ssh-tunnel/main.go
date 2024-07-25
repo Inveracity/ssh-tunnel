@@ -18,6 +18,7 @@ var (
 	flagNoColor = flag.Bool("no-color", false, "Disable color output")
 	v           = flag.Bool("version", false, "Print the version and exit")
 	newconfig   = flag.Bool("init", false, "Create a new config file")
+	debug       = flag.Bool("debug", false, "Print debug output")
 )
 
 func main() {
@@ -37,15 +38,15 @@ func main() {
 		return
 	}
 
-	if err := run(); err != nil {
+	if err := run(debug); err != nil {
 		fmt.Println("ERROR:", err)
 	}
 }
 
-func run() (err error) {
+func run(debug *bool) (err error) {
 	var path_to_config string
 	if *configfile == "" {
-		path_to_config, err = config.FindConfig()
+		path_to_config, err = config.FindConfig(debug)
 		if err != nil {
 			return err
 		}
@@ -61,7 +62,6 @@ func run() (err error) {
 		defer wg.Done()
 		go tunnel.Start(c)
 
-		// If there is a command to run, run it
 		if c.Local.Cmd != nil {
 			command, args := c.Local.Cmd[0], c.Local.Cmd[1:]
 			exec.Command(command, args...).Run()
