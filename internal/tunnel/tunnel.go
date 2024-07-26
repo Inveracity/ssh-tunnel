@@ -71,22 +71,26 @@ func tunnel(conn *ssh.Client, local, remote string) error {
 			log.Printf("failed to copy: %s", err)
 		}
 	}
+
 	listener, err := net.Listen("tcp", local)
 	if err != nil {
 		return err
 	}
+
 	for {
 		here, err := listener.Accept()
 		if err != nil {
 			return err
 		}
+
 		go func(here net.Conn) {
 			there, err := conn.Dial("tcp", remote)
 			if err != nil {
 				log.Fatalf("failed to dial to remote: %q", err)
+			} else {
+				go pipe(there, here)
+				go pipe(here, there)
 			}
-			go pipe(there, here)
-			go pipe(here, there)
 		}(here)
 	}
 }
