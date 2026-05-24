@@ -56,6 +56,8 @@ type TunnelRunner struct {
 	wg       sync.WaitGroup
 	mu       sync.Mutex
 	listener net.Listener
+	sshConn  *ssh.Client
+	closed   bool
 }
 
 // NewTunnelRunner creates a TunnelRunner with a cancellable child context.
@@ -69,13 +71,22 @@ func NewTunnelRunner(ctx context.Context, t Tunnel, cfg Config) *TunnelRunner {
 	}
 }
 
-// Close cancels the runner's context, closes the listener, and waits for all active pipe goroutines to finish.
+// Close cancels the runner's context, closes the listener and SSH connection, and waits for all active pipe goroutines to finish.
 // Safe to call multiple times.
 func (r *TunnelRunner) Close() {
 	r.mu.Lock()
+	if r.closed {
+		r.mu.Unlock()
+		r.wg.Wait()
+		return
+	}
+	r.closed = true
 	r.cancel()
 	if r.listener != nil {
 		_ = r.listener.Close()
+	}
+	if r.sshConn != nil {
+		_ = r.sshConn.Close()
 	}
 	r.mu.Unlock()
 	r.wg.Wait()
@@ -84,6 +95,8 @@ func (r *TunnelRunner) Close() {
 // Run establishes the SSH connection and starts the accept loop.
 // It blocks until the context is cancelled or a permanent error occurs.
 func (r *TunnelRunner) Run() error {
+	defer r.Close()
+
 	sock, err := sshAgent()
 	if err != nil {
 		return err
@@ -98,7 +111,10 @@ func (r *TunnelRunner) Run() error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = conn.Close() }()
+
+	r.mu.Lock()
+	r.sshConn = conn
+	r.mu.Unlock()
 
 	local := "localhost:" + r.tunnel.Local.Port
 	remote := "localhost:" + r.tunnel.Remote.Port
