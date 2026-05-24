@@ -238,7 +238,7 @@ func pipe(ctx context.Context, writer, reader net.Conn, closeOnce *sync.Once) {
 		_ = writer.Close()
 		_ = reader.Close()
 	})
-	if err != nil {
+	if err != nil && !isShutdownError(err) {
 		log.Printf("failed to copy: %s", err)
 	}
 }
