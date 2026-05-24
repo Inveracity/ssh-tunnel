@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"os"
 	"os/exec"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/fatih/color"
 	"github.com/inveracity/ssh-tunnel/internal/config"
@@ -61,16 +65,21 @@ func run(debug *bool) (err error) {
 		return err
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	var wg sync.WaitGroup
 	for _, t := range tunnels {
 		wg.Add(1)
 		go func(t config.Tunnel) {
 			defer wg.Done()
-			if err := tunnel.Start(tunnel.Tunnel{
+			runner := tunnel.NewTunnelRunner(ctx, tunnel.Tunnel{
 				User:   t.User,
 				Local:  tunnel.Local{Port: t.Local.Port},
 				Remote: tunnel.Remote{Port: t.Remote.Port, Host: t.Remote.Host},
-			}); err != nil {
+			}, tunnel.DefaultConfig())
+
+			if err := runner.Run(); err != nil {
 				fmt.Printf("tunnel error: %v\n", err)
 			}
 		}(t)
@@ -83,6 +92,7 @@ func run(debug *bool) (err error) {
 		}
 	}
 
+	<-ctx.Done()
 	wg.Wait()
 	return nil
 }
