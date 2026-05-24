@@ -3,9 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
-	"path/filepath"
 	"text/tabwriter"
 
 	"github.com/fatih/color"
@@ -34,24 +32,24 @@ type Remote struct {
 	Host string `hcl:"host"`
 }
 
-func Parse(configfile string) []Tunnel {
+func Parse(configfile string) ([]Tunnel, error) {
 	parser := hclparse.NewParser()
 	file, diags := parser.ParseHCLFile(configfile)
 
 	if diags.HasErrors() {
-		log.Fatal(diags)
+		return nil, fmt.Errorf("parse config: %w", diags)
 	}
 
 	var config Configuration
 	confDiags := gohcl.DecodeBody(file.Body, nil, &config)
 
 	if confDiags.HasErrors() {
-		log.Fatal(confDiags)
+		return nil, fmt.Errorf("decode config: %w", confDiags)
 	}
 
 	printConfig(config.Tunnels)
 
-	return config.Tunnels
+	return config.Tunnels, nil
 }
 
 func printConfig(config []Tunnel) {
@@ -77,8 +75,14 @@ func printConfig(config []Tunnel) {
 
 func FindConfig(debug *bool) (string, error) {
 	green := color.New(color.FgGreen)
-	homedir, _ := os.UserHomeDir()
-	currentDir := cwd()
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("get home directory: %w", err)
+	}
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("get working directory: %w", err)
+	}
 	searchPaths := []string{
 		currentDir + "/ssh-tunnel.hcl",
 		homedir + "/.config/ssh-tunnel/ssh-tunnel.hcl",
@@ -100,10 +104,3 @@ func FindConfig(debug *bool) (string, error) {
 	return "", errors.New("no ssh-tunnel.hcl found")
 }
 
-func cwd() string {
-	ex, err := filepath.Abs("./")
-	if err != nil {
-		panic(err)
-	}
-	return ex
-}

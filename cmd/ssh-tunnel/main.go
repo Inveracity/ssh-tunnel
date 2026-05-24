@@ -56,7 +56,10 @@ func run(debug *bool) (err error) {
 		path_to_config = *configfile
 	}
 
-	tunnels := config.Parse(path_to_config)
+	tunnels, err := config.Parse(path_to_config)
+	if err != nil {
+		return err
+	}
 
 	var wg sync.WaitGroup
 	for _, t := range tunnels {
