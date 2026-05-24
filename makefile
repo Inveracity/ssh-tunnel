@@ -17,7 +17,7 @@ ssh-tunnel:
 .PHONY: install
 install: ssh-tunnel
 	@echo "Installing..."
-	sudo mv -f ssh-tunnel /usr/local/bin/ssh-tunnel
+	install ./ssh-tunnel ~/.local/bin/ssh-tunnel
 
 .PHONY: zip
 zip: ssh-tunnel
