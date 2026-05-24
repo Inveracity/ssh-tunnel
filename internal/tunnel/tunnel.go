@@ -2,10 +2,12 @@ package tunnel
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -231,6 +233,17 @@ func dialRemote(conn *ssh.Client, remote string) (net.Conn, error) {
 	return conn.Dial("tcp", remote)
 }
 
+// isShutdownError returns true if the error indicates the listener was closed during shutdown.
+func isShutdownError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, net.ErrClosed) {
+		return true
+	}
+	return strings.Contains(err.Error(), "use of closed network connection")
+}
+
 // runAcceptLoop accepts connections and spawns pipe pairs until the context is cancelled or a permanent error occurs.
 func (r *TunnelRunner) runAcceptLoop(conn *ssh.Client, local, remote string) error {
 	listener, err := net.Listen("tcp", local)
@@ -252,9 +265,15 @@ func (r *TunnelRunner) runAcceptLoop(conn *ssh.Client, local, remote string) err
 	for {
 		here, err := r.acceptConnection(listener)
 		if err != nil {
-			if r.ctx.Err() != nil {
+			if r.ctx.Err() != nil || isShutdownError(err) {
 				return nil
 			}
+
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				time.Sleep(r.config.AcceptRetryDelay)
+				continue
+			}
+
 			return err
 		}
 
