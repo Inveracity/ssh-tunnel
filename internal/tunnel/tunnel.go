@@ -49,12 +49,13 @@ func DefaultConfig() Config {
 
 // TunnelRunner manages the lifecycle of a single SSH tunnel.
 type TunnelRunner struct {
-	tunnel Tunnel
-	config Config
-	ctx    context.Context
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
-	mu     sync.Mutex
+	tunnel   Tunnel
+	config   Config
+	ctx      context.Context
+	cancel   context.CancelFunc
+	wg       sync.WaitGroup
+	mu       sync.Mutex
+	listener net.Listener
 }
 
 // NewTunnelRunner creates a TunnelRunner with a cancellable child context.
@@ -68,13 +69,41 @@ func NewTunnelRunner(ctx context.Context, t Tunnel, cfg Config) *TunnelRunner {
 	}
 }
 
-// Close cancels the runner's context and waits for all active pipe goroutines to finish.
+// Close cancels the runner's context, closes the listener, and waits for all active pipe goroutines to finish.
 // Safe to call multiple times.
 func (r *TunnelRunner) Close() {
 	r.mu.Lock()
 	r.cancel()
+	if r.listener != nil {
+		_ = r.listener.Close()
+	}
 	r.mu.Unlock()
 	r.wg.Wait()
+}
+
+// Run establishes the SSH connection and starts the accept loop.
+// It blocks until the context is cancelled or a permanent error occurs.
+func (r *TunnelRunner) Run() error {
+	sock, err := sshAgent()
+	if err != nil {
+		return err
+	}
+
+	sshCfg, err := makeSshConfig(r.tunnel.User, sock)
+	if err != nil {
+		return err
+	}
+
+	conn, err := ssh.Dial("tcp", r.tunnel.Remote.Host, sshCfg)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = conn.Close() }()
+
+	local := "localhost:" + r.tunnel.Local.Port
+	remote := "localhost:" + r.tunnel.Remote.Port
+
+	return r.runAcceptLoop(conn, local, remote)
 }
 
 func Start(t Tunnel) error {
@@ -145,8 +174,6 @@ func pipe(ctx context.Context, writer, reader net.Conn, closeOnce *sync.Once) {
 
 // spawnPipePair creates a bidirectional pipe between local and remote connections.
 // Both directions share a sync.Once to ensure connections are closed exactly once.
-//
-//nolint:unused // will be wired into runAcceptLoop in Step 3
 func (r *TunnelRunner) spawnPipePair(local, remote net.Conn) {
 	var closeOnce sync.Once
 	r.wg.Add(2)
@@ -160,6 +187,70 @@ func (r *TunnelRunner) spawnPipePair(local, remote net.Conn) {
 		defer r.wg.Done()
 		pipe(r.ctx, local, remote, &closeOnce)
 	}()
+}
+
+// acceptConnection accepts a single connection from the listener, returning early if context is cancelled.
+func (r *TunnelRunner) acceptConnection(listener net.Listener) (net.Conn, error) {
+	done := make(chan struct{})
+	var conn net.Conn
+	var err error
+
+	go func() {
+		conn, err = listener.Accept()
+		close(done)
+	}()
+
+	select {
+	case <-r.ctx.Done():
+		_ = listener.Close()
+		<-done
+		return nil, r.ctx.Err()
+	case <-done:
+		return conn, err
+	}
+}
+
+// dialRemote dials the remote endpoint through the SSH connection.
+func dialRemote(conn *ssh.Client, remote string) (net.Conn, error) {
+	return conn.Dial("tcp", remote)
+}
+
+// runAcceptLoop accepts connections and spawns pipe pairs until the context is cancelled or a permanent error occurs.
+func (r *TunnelRunner) runAcceptLoop(conn *ssh.Client, local, remote string) error {
+	listener, err := net.Listen("tcp", local)
+	if err != nil {
+		return err
+	}
+
+	r.mu.Lock()
+	r.listener = listener
+	r.mu.Unlock()
+
+	defer func() {
+		r.mu.Lock()
+		r.listener = nil
+		r.mu.Unlock()
+		_ = listener.Close()
+	}()
+
+	for {
+		here, err := r.acceptConnection(listener)
+		if err != nil {
+			if r.ctx.Err() != nil {
+				return nil
+			}
+			return err
+		}
+
+		there, err := dialRemote(conn, remote)
+		if err != nil {
+			log.Printf("failed to dial to remote: %q", err)
+			_ = here.Close()
+			continue
+		}
+
+		r.spawnPipePair(here, there)
+	}
 }
 
 func tunnel(ctx context.Context, conn *ssh.Client, local, remote string) error {
