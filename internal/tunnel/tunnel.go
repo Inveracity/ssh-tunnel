@@ -27,7 +27,7 @@ func Start(config config.Tunnel) {
 		log.Fatalln(err)
 	}
 
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	if err := tunnel(conn, "localhost:"+config.Local.Port, "localhost:"+config.Remote.Port); err != nil {
 		log.Fatalf("failed to tunnel traffic: %q", err)
@@ -63,8 +63,8 @@ func makeSshConfig(user string, sock agent.ExtendedAgent) (*ssh.ClientConfig, er
 
 func tunnel(conn *ssh.Client, local, remote string) error {
 	pipe := func(writer, reader net.Conn) {
-		defer writer.Close()
-		defer reader.Close()
+		defer func() { _ = writer.Close() }()
+		defer func() { _ = reader.Close() }()
 
 		_, err := io.Copy(writer, reader)
 		if err != nil {

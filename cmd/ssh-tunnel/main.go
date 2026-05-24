@@ -34,7 +34,9 @@ func main() {
 	}
 
 	if *newconfig {
-		template.Write()
+		if err := template.Write(); err != nil {
+			fmt.Println("ERROR:", err)
+		}
 		return
 	}
 
@@ -66,7 +68,9 @@ func run(debug *bool) (err error) {
 
 		if t.Local.Cmd != nil {
 			command, args := t.Local.Cmd[0], t.Local.Cmd[1:]
-			exec.Command(command, args...).Run()
+			if err := exec.Command(command, args...).Run(); err != nil {
+				fmt.Printf("WARN: failed to run post-tunnel command %q: %v\n", command, err)
+			}
 		}
 	}
 

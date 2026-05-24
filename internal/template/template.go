@@ -1,21 +1,25 @@
 package template
 
 import (
+	"fmt"
 	"log"
 	"os"
 )
 
 var filename = "ssh-tunnel.hcl"
 
-func Write() {
-
+func Write() error {
 	perms := os.FileMode(0644)
 
 	if !exists() {
-		os.WriteFile(filename, []byte(template()), perms)
+		if err := os.WriteFile(filename, []byte(template()), perms); err != nil {
+			return fmt.Errorf("failed to write %s: %w", filename, err)
+		}
 	} else {
 		log.Println("a ssh-tunnel.hcl file already exists, nothing to do")
 	}
+
+	return nil
 }
 
 func template() string {

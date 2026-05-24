@@ -60,7 +60,7 @@ func printConfig(config []Tunnel) {
 	blue := color.New(color.FgHiBlue)
 	green := color.New(color.FgGreen)
 
-	fmt.Fprintf(w, "%s\t%s\t\t%s\n", "User@Host", blue.Sprintf("Remote"), green.Sprintf("Local"))
+	_, _ = fmt.Fprintf(w, "%s\t%s\t\t%s\n", "User@Host", blue.Sprintf("Remote"), green.Sprintf("Local"))
 
 	for _, tunnel := range config {
 
@@ -70,9 +70,9 @@ func printConfig(config []Tunnel) {
 		}
 
 		to := green.Sprintf("127.0.0.1:%s", tunnel.Remote.Port)
-		fmt.Fprintf(w, "%s@%s\t%s\t->\t%s\n", tunnel.User, tunnel.Remote.Host, from, to)
+		_, _ = fmt.Fprintf(w, "%s@%s\t%s\t->\t%s\n", tunnel.User, tunnel.Remote.Host, from, to)
 	}
-	w.Flush()
+	_ = w.Flush()
 }
 
 func FindConfig(debug *bool) (string, error) {
@@ -91,7 +91,7 @@ func FindConfig(debug *bool) (string, error) {
 		}
 		if _, err := os.Stat(spath); err == nil {
 			if *debug {
-				green.Println("Found config in", spath)
+				_, _ = green.Println("Found config in", spath)
 			}
 			return spath, nil
 		}
