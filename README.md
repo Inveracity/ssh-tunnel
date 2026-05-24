@@ -102,7 +102,7 @@ make ssh-tunnel
 # ./ssh-tunnel --help
 ```
 
-or `make install` to install the binary directly into `/usr/local/bin`
+or `make install` to install the binary directly into `~/.local/bin` (make sure this exists in your PATH)
 
 # Limitations
 
