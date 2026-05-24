@@ -54,16 +54,18 @@ func run(debug *bool) (err error) {
 		path_to_config = *configfile
 	}
 
-	config := config.Parse(path_to_config)
+	tunnels := config.Parse(path_to_config)
 
 	var wg sync.WaitGroup
-	for _, c := range config {
+	for _, t := range tunnels {
 		wg.Add(1)
-		defer wg.Done()
-		go tunnel.Start(c)
+		go func(t config.Tunnel) {
+			defer wg.Done()
+			tunnel.Start(t)
+		}(t)
 
-		if c.Local.Cmd != nil {
-			command, args := c.Local.Cmd[0], c.Local.Cmd[1:]
+		if t.Local.Cmd != nil {
+			command, args := t.Local.Cmd[0], t.Local.Cmd[1:]
 			exec.Command(command, args...).Run()
 		}
 	}
