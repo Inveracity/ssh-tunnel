@@ -103,4 +103,3 @@ func FindConfig(debug *bool) (string, error) {
 
 	return "", errors.New("no ssh-tunnel.hcl found")
 }
-
