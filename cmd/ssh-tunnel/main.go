@@ -66,7 +66,13 @@ func run(debug *bool) (err error) {
 		wg.Add(1)
 		go func(t config.Tunnel) {
 			defer wg.Done()
-			tunnel.Start(t)
+			if err := tunnel.Start(tunnel.Tunnel{
+				User:   t.User,
+				Local:  tunnel.Local{Port: t.Local.Port},
+				Remote: tunnel.Remote{Port: t.Remote.Port, Host: t.Remote.Host},
+			}); err != nil {
+				fmt.Printf("tunnel error: %v\n", err)
+			}
 		}(t)
 
 		if t.Local.Cmd != nil {
