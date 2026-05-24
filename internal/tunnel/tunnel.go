@@ -3,6 +3,7 @@ package tunnel
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -48,6 +49,9 @@ func DefaultConfig() Config {
 		AcceptRetryDelay: 100 * time.Millisecond,
 	}
 }
+
+// ErrSSHDisconnected is returned when the SSH connection is lost and needs reconnection.
+var ErrSSHDisconnected = errors.New("SSH connection disconnected")
 
 // TunnelRunner manages the lifecycle of a single SSH tunnel.
 type TunnelRunner struct {
@@ -96,6 +100,7 @@ func (r *TunnelRunner) Close() {
 
 // Run establishes the SSH connection and starts the accept loop.
 // It blocks until the context is cancelled or a permanent error occurs.
+// On SSH disconnect, it attempts to reconnect with exponential backoff.
 func (r *TunnelRunner) Run() error {
 	defer r.Close()
 
@@ -109,19 +114,67 @@ func (r *TunnelRunner) Run() error {
 		return err
 	}
 
-	conn, err := ssh.Dial("tcp", r.tunnel.Remote.Host, sshCfg)
-	if err != nil {
-		return err
-	}
-
-	r.mu.Lock()
-	r.sshConn = conn
-	r.mu.Unlock()
-
 	local := "localhost:" + r.tunnel.Local.Port
 	remote := "localhost:" + r.tunnel.Remote.Port
 
-	return r.runAcceptLoop(conn, local, remote)
+	var attempt int
+	for {
+		conn, dialErr := ssh.Dial("tcp", r.tunnel.Remote.Host, sshCfg)
+		if dialErr != nil {
+			if r.config.MaxRetries > 0 && attempt >= r.config.MaxRetries {
+				return fmt.Errorf("failed to connect after %d attempts: %w", attempt, dialErr)
+			}
+
+			delay := r.backoff(attempt)
+			attempt++
+			log.Printf("SSH connection failed, retrying in %v (attempt %d): %v", delay, attempt, dialErr)
+
+			select {
+			case <-r.ctx.Done():
+				return nil
+			case <-time.After(delay):
+			}
+			continue
+		}
+
+		attempt = 0
+
+		r.mu.Lock()
+		r.sshConn = conn
+		r.mu.Unlock()
+
+		err = r.runAcceptLoop(conn, local, remote)
+		if err == nil || errors.Is(err, context.Canceled) {
+			return nil
+		}
+
+		if !errors.Is(err, ErrSSHDisconnected) {
+			return err
+		}
+
+		if r.config.MaxRetries > 0 && attempt >= r.config.MaxRetries {
+			return fmt.Errorf("SSH reconnect failed after %d attempts", attempt)
+		}
+
+		delay := r.backoff(attempt)
+		attempt++
+		log.Printf("SSH disconnected, reconnecting in %v (attempt %d)...", delay, attempt)
+
+		select {
+		case <-r.ctx.Done():
+			return nil
+		case <-time.After(delay):
+		}
+	}
+}
+
+// backoff calculates an exponential backoff delay for a given attempt number.
+func (r *TunnelRunner) backoff(attempt int) time.Duration {
+	delay := r.config.RetryBaseDelay * time.Duration(1<<uint(attempt))
+	if delay > r.config.RetryMaxDelay {
+		delay = r.config.RetryMaxDelay
+	}
+	return delay
 }
 
 func Start(t Tunnel) error {
@@ -244,7 +297,7 @@ func isShutdownError(err error) bool {
 	return strings.Contains(err.Error(), "use of closed network connection")
 }
 
-// runAcceptLoop accepts connections and spawns pipe pairs until the context is cancelled or a permanent error occurs.
+// runAcceptLoop accepts connections and spawns pipe pairs until the context is cancelled, the SSH connection drops, or a permanent error occurs.
 func (r *TunnelRunner) runAcceptLoop(conn *ssh.Client, local, remote string) error {
 	listener, err := net.Listen("tcp", local)
 	if err != nil {
@@ -254,6 +307,11 @@ func (r *TunnelRunner) runAcceptLoop(conn *ssh.Client, local, remote string) err
 	r.mu.Lock()
 	r.listener = listener
 	r.mu.Unlock()
+
+	sshLost := make(chan error, 1)
+	go func() {
+		sshLost <- conn.Wait()
+	}()
 
 	defer func() {
 		r.mu.Lock()
@@ -265,6 +323,15 @@ func (r *TunnelRunner) runAcceptLoop(conn *ssh.Client, local, remote string) err
 	for {
 		here, err := r.acceptConnection(listener)
 		if err != nil {
+			select {
+			case sshErr := <-sshLost:
+				if sshErr != nil {
+					log.Printf("SSH connection lost: %v", sshErr)
+				}
+				return fmt.Errorf("%w: %v", ErrSSHDisconnected, sshErr)
+			default:
+			}
+
 			if r.ctx.Err() != nil || isShutdownError(err) {
 				return nil
 			}
