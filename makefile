@@ -18,6 +18,7 @@ ssh-tunnel:
 install: ssh-tunnel
 	@echo "Installing..."
 	install ./ssh-tunnel ~/.local/bin/ssh-tunnel
+	rm -f ./ssh-tunnel
 
 .PHONY: zip
 zip: ssh-tunnel
